@@ -1,0 +1,290 @@
+<!doctype html>
+<!--
+  Copyright 2016 Google Inc. All rights reserved.
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+      https://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="description" content="Demonstrates the use of Google Cloud Database with a Firebase DB">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pan Dergi Admin Paneli</title>
+
+  <!-- Disable tap highlight on IE -->
+  <meta name="msapplication-tap-highlight" content="no">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Firebase Database Quickstart">
+  <meta name="theme-color" content="#303F9F">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Firebase Database Quickstart">
+  <meta name="apple-mobile-web-app-status-bar-style" content="#303F9F">
+
+  <!-- Tile icon for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+  <meta name="msapplication-navbutton-color" content="#303F9F">
+
+  <!-- Cross-browser dialog support -->
+  <script src="dialog-polyfill.js"></script>
+  <link rel="stylesheet" type="text/css" href="dialog-polyfill.css" />
+
+  <!-- Material Design Lite -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.1.3/material.blue_grey-orange.min.css">
+  <script src="https://code.getmdl.io/1.1.3/material.min.js"></script>
+
+  <link rel="stylesheet" href="main.css">
+
+  <!-- Firebase -->
+
+  <script src="https://www.gstatic.com/firebasejs/3.6.4/firebase.js"></script>
+  <script>
+    // Initialize Firebase
+    var config = {
+      apiKey: "AIzaSyBHfCvDRVsFb8qfiWlOcmtz7ivr6NojnBc",
+      authDomain: "pan-dergi.firebaseapp.com",
+      databaseURL: "https://pan-dergi.firebaseio.com",
+      storageBucket: "pan-dergi.appspot.com",
+      messagingSenderId: "323009390851"
+    };
+    firebase.initializeApp(config);
+  </script>
+
+</head>
+<body>
+<div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-header">
+
+
+  <!-- Splash screen -->
+  <section id="page-splash">
+    <h3 class="logo">Pan Dergi</h3>
+    <div>
+      <button id="sign-in-button" class="mdl-button--raised mdl-button mdl-js-button mdl-js-ripple-effect"><i class="material-icons">account_circle</i> Sign in with Google</button>
+    </div>
+  </section>
+
+  <!-- Header section containing logo and menu -->
+  <header class="header mdl-layout__header mdl-color-text--white mdl-color--light-blue-700">
+
+    <div class="mdl-layout__header-row titlebar">
+      <h3 class="logo">Pan Dergi</h3>
+      <button id="sign-out-button" class="mdl-button--raised mdl-button mdl-js-button mdl-js-ripple-effect"><i class="material-icons">account_circle</i> Sign out</button>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="tab mdl-layout__header-row mdl-color--light-blue-600">
+      <div class="mdl-tab">
+        <div id="menu-issues" class="mdl-layout__tab is-active mdl-button mdl-js-button mdl-js-ripple-effect">
+          <i class="material-icons">local_library</i> Sayılar
+        </div>
+        <div id="menu-articles" class="mdl-layout__tab mdl-button mdl-js-button mdl-js-ripple-effect">
+          <i class="material-icons">subject</i> Yazılar
+        </div>
+        <div id="menu-users" class="mdl-layout__tab mdl-button mdl-js-button mdl-js-ripple-effect">
+          <i class="material-icons">person</i> Kullanıcılar
+        </div>
+        <button class="mdl-button mdl-js-button mdl-button--fab mdl-color--amber-400 mdl-shadow--4dp mdl-js-ripple-effect" id="add" style="display:none;">
+          <i class="material-icons">mode_edit</i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mdl-layout__content mdl-color--grey-100">
+
+    <!-- Show the add post form -->
+    <section class="mdl-grid content" id="add-article" style="display:none">
+      <div class="mdl-cell mdl-cell--12-col mdl-grid">
+
+          <!-- Card containing the inputs to add a new messages -->
+          <div class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--8-col-tablet
+                  mdl-cell--6-col-desktop">
+            <div class="mdl-card__title mdl-color--light-blue-600 mdl-color-text--white">
+              <h2 class="mdl-card__title-text">Yeni Yazı</h2>
+            </div>
+            <div class="mdl-card__supporting-text mdl-color-text--grey-600">
+              <form id="article-form" action="#">
+                <div class="mdl-selectfield mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <select id="sayilar" class="sayilar">
+                    <option value="" disabled selected>Sayı seçin</option>
+                  </select>
+                </div>
+
+                <input type="text" id="new-post-id" style="display:none;"></input>
+                <input type="text" id="new-post-authorId" style="display:none;"></input>
+
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="new-post-title">
+                  <label class="mdl-textfield__label" for="new-post-title">Başlık (Zorunlu)</label>
+                </div>
+
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="new-post-author">
+                  <label class="mdl-textfield__label" for="new-post-author">Yazar (Zorunlu)</label>
+                </div>
+
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="new-post-category">
+                  <label class="mdl-textfield__label" for="new-post-category">Kategori</label>
+                </div>
+
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="new-post-description">
+                  <label class="mdl-textfield__label" for="new-post-description">Açıklama (1-2 cümleyi geçmesin)</label>
+                </div>
+
+                <div id="new-post-keep-image-container" class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="new-post-keep-image">
+                    <input type="checkbox" id="new-post-keep-image" class="mdl-checkbox__input">
+                    <span class="mdl-checkbox__label">Önceki resmi değiştir</span>
+                  </label>
+                </div>
+
+                <div id="new-post-image-container" class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  Resim:
+                  <input type="file" id="new-post-image" name="new-post-image"/>
+                </div>
+
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <textarea class="mdl-textfield__input" rows="3" id="new-post-text"></textarea>
+                  <label class="mdl-textfield__label" for="new-post-text">Yazı (Zorunlu)</label>
+                </div>
+
+                <button type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+                  Gönder
+                </button>
+                <div class="mdl-spinner mdl-spinner--single-color mdl-js-spinner" id="new-post-spinner"></div>
+              </form>
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Show the add issue form -->
+    <section class="mdl-grid content" id="add-issue" style="display:none">
+      <div class="mdl-cell mdl-cell--12-col mdl-grid">
+
+          <!-- Card containing the inputs to add a new messages -->
+          <div class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--8-col-tablet
+                  mdl-cell--6-col-desktop">
+            <div class="mdl-card__title mdl-color--light-blue-600 mdl-color-text--white">
+              <h2 class="mdl-card__title-text">Yeni Sayı</h2>
+            </div>
+            <div class="mdl-card__supporting-text mdl-color-text--grey-600">
+              <form id="issue-form" action="#">
+
+                <input type="text" id="new-issue-id" style="display:none;"></input>
+
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="new-issue-title">
+                  <label class="mdl-textfield__label" for="new-issue-title">Başlık (Zorunlu)</label>
+                </div>
+
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <textarea class="mdl-textfield__input" rows="3" id="new-issue-description"></textarea>
+                  <label class="mdl-textfield__label" for="new-issue-description">Açıklama</label>
+                </div>
+
+                <div id="new-issue-keep-image-container" class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="new-issue-keep-image">
+                    <input type="checkbox" id="new-issue-keep-image" class="mdl-checkbox__input">
+                    <span class="mdl-checkbox__label">Önceki resmi değiştir</span>
+                  </label>
+                </div>
+
+                <div id="new-issue-image-container" class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  Resim:
+                  <input type="file" id="new-issue-image" name="new-issue-image"/>
+                </div>
+
+                <button type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+                  Gönder
+                </button>
+                <div class="mdl-spinner mdl-spinner--single-color mdl-js-spinner" id="new-issue-spinner"></div>
+              </form>
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Show a list of issues -->
+    <section class="mdl-grid content" id="issues-list" style="display:none">
+      <table id="issues-table" class="mdl-data-table mdl-js-data-table mdl-shadow--2dp" style="margin: 0 auto;">
+        <thead>
+          <tr>
+            <th class="mdl-data-table__cell--non-numeric">Başlık</th>
+            <th class="mdl-data-table__cell--non-numeric">Açıklama</th>
+            <th class="mdl-data-table__cell--non-numeric">Resim</th>
+            <th class="mdl-data-table__cell--non-numeric">Yayınla</th>
+            <th class="mdl-data-table__cell--non-numeric">Düzenle</th>
+            <th class="mdl-data-table__cell--non-numeric">Sil</th>
+          </tr>
+        </thead>
+        <tbody id="issues-container" class="issues-container mdl-cell mdl-cell--12-col mdl-grid">
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Show the list of articles -->
+    <section class="mdl-grid content" id="articles-list" style="display:none">
+      <table id="articles-table" class="mdl-data-table mdl-js-data-table mdl-shadow--2dp" style="margin: 0 auto;">
+        <thead>
+          <tr>
+            <th class="mdl-data-table__cell--non-numeric">Sayı</th>
+            <th class="mdl-data-table__cell--non-numeric">Başlık</th>
+            <th class="mdl-data-table__cell--non-numeric">Yazar</th>
+            <th class="mdl-data-table__cell--non-numeric">Kategori</th>
+            <th class="mdl-data-table__cell--non-numeric">Açıklama</th>
+            <th class="mdl-data-table__cell--non-numeric">Resim</th>
+            <th class="mdl-data-table__cell--non-numeric">Yazı</th>
+            <th class="mdl-data-table__cell--non-numeric">Yayınla</th>
+            <th class="mdl-data-table__cell--non-numeric">Düzenle</th>
+            <th class="mdl-data-table__cell--non-numeric">Sil</th>
+          </tr>
+        </thead>
+        <tbody id="articles-container" class="articles-container mdl-cell mdl-cell--12-col mdl-grid">
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Show the list of users -->
+    <section class="mdl-grid content" id="users-list" style="display:none">
+      <table id="users-table" class="mdl-data-table mdl-js-data-table mdl-shadow--2dp" style="margin: 0 auto;">
+        <thead>
+          <tr>
+            <th class="mdl-data-table__cell--non-numeric">Kullanıcı adı</th>
+            <th style="display:none;">ID</th>
+            <th>Email</th>
+            <th>Admin</th>
+            <th>Editör</th>
+          </tr>
+        </thead>
+        <tbody id="users-container" class="users-container mdl-cell mdl-cell--12-col mdl-grid">
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+<dialog class="mdl-dialog">
+  <h4 class="mdl-dialog__title"></h4>
+  <div class="mdl-dialog__content"></div>
+  <div class="mdl-dialog__actions">
+    <button type="button" class="mdl-button close">Kapat</button>
+  </div>
+</dialog>
+<script src="scripts/main.js"></script>
+</body>
+</html>
