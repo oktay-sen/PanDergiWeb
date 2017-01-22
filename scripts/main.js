@@ -20,6 +20,7 @@ var articleForm = document.getElementById('article-form');
 var issueForm = document.getElementById('issue-form');
 var articleIdInput = document.getElementById('new-post-id');
 var articleAuthorIdInput = document.getElementById('new-post-authorId');
+var articleoldIssueIdInput = document.getElementById('new-post-oldIssueId');
 var articleTitleInput = document.getElementById('new-post-title');
 var articleAuthorInput = document.getElementById('new-post-author');
 var articleCategoryInput = document.getElementById('new-post-category');
@@ -56,13 +57,16 @@ var listeningFirebaseRefs = [];
 /**
  * Saves a new post to the Firebase DB.
  */
-function newArticle(key, issueId, authorId, title, author, category, description, picUrl, body, changePic) {
+function newArticle(key, issueId, oldIssueId, authorId, title, author, category, description, picUrl, body, changePic) {
   // Get a key for a new Post.
   if (!key)
     key = firebase.database().ref('/yazilar/').push().key;
 
   // Write the new post's data simultaneously in the posts list and the user's post list.
   var updates = {};
+  if (oldIssueId && oldIssueId !== issueId)
+    updates['/sayilar/' + oldIssueId + '/articles/' + key] = null
+  //updates['/sayilar/' + issueId + '/articles/' + key] = true
   updates['/yazilar/' + key + '/key'] = key;
   updates['/yazilar/' + key + '/issueId'] = issueId;
   if (authorId)
@@ -115,7 +119,7 @@ function createArticleElement(postId, authorId, issueId, title, author, category
                 '<th class="text"><button class="mdl-button mdl-js-button mdl-button--icon textButton"><i class="material-icons">subject</i></button></th>' +
                 '<th class="publish">' +
                   '<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="article-switch-'+postId+'">' +
-                    '<input type="checkbox" id="article-switch-'+postId+'" class="mdl-switch__input" '+ (isPublished?'checked':'') +'>' +
+                    '<input type="checkbox" id="article-switch-'+postId+'" class="mdl-switch__input" >' +
                     '<span class="mdl-switch__label"></span>' +
                   '</label>' +
               '</th>' +
@@ -150,6 +154,15 @@ function createArticleElement(postId, authorId, issueId, title, author, category
     showViewDialog(title, text);
   };
 
+  firebase.database().ref('/sayilar/'+issueId+'/articles/'+postId).on('value', (data) => {
+    var publishCheck = document.getElementById('article-switch-'+postId);
+    if (data.val()) {
+      publishCheck.checked = true;
+    } else {
+      publishCheck.checked = false;
+    }
+  });
+
   firebase.database().ref('/kullanicilar/'+uid+'/').once('value', (data) => {
     var publishCheck = document.getElementById('article-switch-'+postId);
     if (!data.val().isAdmin) {
@@ -158,7 +171,13 @@ function createArticleElement(postId, authorId, issueId, title, author, category
       publishCheck.disabled = false;
       publishCheck.addEventListener('click', () => {
         var updates = {};
-        updates['/yazilar/'+postId+'/publish'] = publishCheck.checked;
+        var pub = publishCheck.checked;
+        if (pub) {
+          updates['/sayilar/'+issueId+'/articles/'+postId] = true;
+        } else {
+          updates['/sayilar/'+issueId+'/articles/'+postId] = null;
+        }
+        //updates['/yazilar/'+postId+'/publish'] = publishCheck.checked;
         firebase.database().ref().update(updates);
       });
       if (componentHandler) {
@@ -186,6 +205,7 @@ function createArticleElement(postId, authorId, issueId, title, author, category
         articleKeepImageContainer.checked = false;
         articleIdInput.value = postId;
         articleAuthorIdInput.value = authorId;
+        articleoldIssueIdInput.value = issueId;
         issueSelect.value = issueId;
         articleTitleInput.value = title;
         articleAuthorInput.value = author;
@@ -400,6 +420,7 @@ function startDatabaseQueries() {
           articleKeepImageContainer.checked = false;
           articleIdInput.value = data.key;
           articleAuthorIdInput.value = data.val().authorId;
+          articleoldIssueIdInput.value = data.val().issueId;
           issueSelect.value = data.val().issueId;
           articleTitleInput.value = data.val().title;
           articleAuthorInput.value = data.val().author;
@@ -662,6 +683,7 @@ window.addEventListener('load', function() {
     e.preventDefault();
     var articleId = articleIdInput.value;
     var authorId = articleAuthorIdInput.value;
+    var oldIssueId = articleoldIssueIdInput.value;
     var issue = issueSelect.value;
     var title = articleTitleInput.value;
     var author = articleAuthorInput.value;
@@ -679,13 +701,13 @@ window.addEventListener('load', function() {
             console.log('Uploaded', snapshot.totalBytes, 'bytes.');
             console.log(snapshot.metadata);
             var url = snapshot.metadata.downloadURLs[0];
-            newArticle(articleId, issue, authorId, title, author, category, description, url, text, changeImage).then(function() {
+            newArticle(articleId, issue, oldIssueId, authorId, title, author, category, description, url, text, changeImage).then(function() {
               articleSpinner.classList.remove('is-active');
               articlesMenuButton.click();
             });
         });
       } else {
-        newArticle(articleId, issue, authorId, title, author, category, description, null, text, changeImage).then(function() {
+        newArticle(articleId, issue, oldIssueId, authorId, title, author, category, description, null, text, changeImage).then(function() {
           articleSpinner.classList.remove('is-active');
           articlesMenuButton.click();
         });
