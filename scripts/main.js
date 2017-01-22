@@ -63,6 +63,7 @@ function newArticle(key, issueId, authorId, title, author, category, description
 
   // Write the new post's data simultaneously in the posts list and the user's post list.
   var updates = {};
+  updates['/yazilar/' + key + '/key'] = key;
   updates['/yazilar/' + key + '/issueId'] = issueId;
   if (authorId)
     updates['/yazilar/' + key + '/authorId'] = authorId;
@@ -88,6 +89,7 @@ function newIssue(key, title, description, picUrl, changePic) {
 
   // Write the new post's data simultaneously in the posts list and the user's post list.
   var updates = {};
+  updates['/sayilar/' + key + '/key'] = key;
   updates['/sayilar/' + key + '/title'] = title;
   updates['/sayilar/' + key + '/description'] = description;
   if (changePic || picUrl)
