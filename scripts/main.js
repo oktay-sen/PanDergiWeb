@@ -66,6 +66,9 @@ function newArticle(key, issueId, oldIssueId, authorId, title, author, category,
   var updates = {};
   if (oldIssueId && oldIssueId !== issueId)
     updates['/sayilar/' + oldIssueId + '/articles/' + key] = null;
+  if (category.length > 0) {
+    category = category.charAt(0).toUpperCase() + category.slice(1);
+  }
   updates['/sayilar/' + issueId + '/articles/' + key] = category;
   updates['/yazilar/' + key + '/key'] = key;
   updates['/yazilar/' + key + '/issueId'] = issueId;
