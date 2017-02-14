@@ -65,8 +65,8 @@ function newArticle(key, issueId, oldIssueId, authorId, title, author, category,
   // Write the new post's data simultaneously in the posts list and the user's post list.
   var updates = {};
   if (oldIssueId && oldIssueId !== issueId)
-    updates['/sayilar/' + oldIssueId + '/articles/' + key] = null
-  //updates['/sayilar/' + issueId + '/articles/' + key] = true
+    updates['/sayilar/' + oldIssueId + '/articles/' + key] = null;
+  updates['/sayilar/' + issueId + '/articles/' + key] = category;
   updates['/yazilar/' + key + '/key'] = key;
   updates['/yazilar/' + key + '/issueId'] = issueId;
   if (authorId)
