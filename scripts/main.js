@@ -59,16 +59,19 @@ var listeningFirebaseRefs = [];
  */
 function newArticle(key, issueId, oldIssueId, authorId, title, author, category, description, picUrl, body, changePic) {
   // Get a key for a new Post.
-  if (!key)
+  if (!key) {
     key = firebase.database().ref('/yazilar/').push().key;
+  }
+
+  //Capitalize categories.
+  if (category.length > 0) {
+    category = category.charAt(0).toUpperCase() + category.slice(1);
+  }
 
   // Write the new post's data simultaneously in the posts list and the user's post list.
   var updates = {};
   if (oldIssueId && oldIssueId !== issueId)
     updates['/sayilar/' + oldIssueId + '/articles/' + key] = null;
-  if (category.length > 0) {
-    category = category.charAt(0).toUpperCase() + category.slice(1);
-  }
   updates['/sayilar/' + issueId + '/articles/' + key] = category;
   updates['/yazilar/' + key + '/key'] = key;
   updates['/yazilar/' + key + '/issueId'] = issueId;
@@ -85,6 +88,17 @@ function newArticle(key, issueId, oldIssueId, authorId, title, author, category,
     updates['/yazilar/' + key + '/imageUrl'] = picUrl;
   }
   //updates['/sayilar/' + issueId + '/' + newPostKey] = postData;
+
+  var authors = author.split(",");
+  authors.forEach(function(name) {
+    while (name.charAt(0) == " ") {
+      name = name.slice(1);
+    }
+    while (name.length > 0 && name.charAt(name.length - 1) == " ") {
+      name = name.substring(0, name.length - 1);
+    }
+    updates['/yazarlar/' + name + '/' + key] = true;
+  })
 
   return firebase.database().ref().update(updates);
 }
@@ -111,6 +125,14 @@ function newIssue(key, title, description, picUrl, changePic) {
  * Creates an article element.
  */
 function createArticleElement(postId, authorId, issueId, title, author, category, description, imageUrl, text, isPublished) {
+  // Create the DOM element from the HTML.
+  var postElement = document.getElementById('articles-table').getElementsByTagName('thead')[0].insertRow(-1);
+  postElement.classList.add('article-'+postId);
+  editArticleElement(postElement, postId, authorId, issueId, title, author, category, description, imageUrl, text, isPublished);
+  return postElement;
+}
+
+function editArticleElement(postElement, postId, authorId, issueId, title, author, category, description, imageUrl, text, isPublished) {
   var uid = firebase.auth().currentUser.uid;
 
   var html =    '<th class="mdl-data-table__cell--non-numeric issue"></th>' +
@@ -129,106 +151,110 @@ function createArticleElement(postId, authorId, issueId, title, author, category
               '<th class="mdl-data-table__cell--non-numeric edit"></th>' +
               '<th class="mdl-data-table__cell--non-numeric delete"></th>';
 
-  // Create the DOM element from the HTML.
-  var postElement = document.getElementById('articles-table').getElementsByTagName('thead')[0].insertRow(-1);
-  postElement.classList.add('article-'+postId);
-  postElement.innerHTML = html;
+    postElement.innerHTML = html;
+    // Set values.
+    firebase.database().ref("/sayilar/"+issueId+"/title").once("value", (snapshot) => {
+      postElement.getElementsByClassName('issue')[0].innerText = snapshot.val() || 'SAYI YOK';
+    });
 
-
-  // Set values.
-  firebase.database().ref("/sayilar/"+issueId+"/title").once("value", (snapshot) => {
-    postElement.getElementsByClassName('issue')[0].innerText = snapshot.val() || 'SAYI YOK';
-  });
-
-  if (imageUrl) {
-    postElement.getElementsByClassName('imageButton')[0].onclick = () => {
-      //showImageDialog(title, imageUrl);
-      window.open(imageUrl);
-    };
-  }
-
-  if (description) {
-    postElement.getElementsByClassName('descriptionButton')[0].onclick = () => {
-      showViewDialog(title, description);
-    };
-  }
-
-  postElement.getElementsByClassName('textButton')[0].onclick = () => {
-    showViewDialog(title, text);
-  };
-
-  firebase.database().ref('/sayilar/'+issueId+'/articles/'+postId).on('value', (data) => {
-    var publishCheck = document.getElementById('article-switch-'+postId);
-    if (data.val()) {
-      publishCheck.checked = true;
-    } else {
-      publishCheck.checked = false;
+    if (imageUrl) {
+      postElement.getElementsByClassName('imageButton')[0].onclick = () => {
+        //showImageDialog(title, imageUrl);
+        window.open(imageUrl);
+      };
     }
-  });
 
-  firebase.database().ref('/kullanicilar/'+uid+'/').once('value', (data) => {
-    var publishCheck = document.getElementById('article-switch-'+postId);
-    if (!data.val().isAdmin) {
-      publishCheck.disabled = true;
-    } else {
-      publishCheck.disabled = false;
-      publishCheck.addEventListener('click', () => {
-        var updates = {};
-        var pub = publishCheck.checked;
-        if (pub) {
-          updates['/sayilar/'+issueId+'/articles/'+postId] = true;
-        } else {
-          updates['/sayilar/'+issueId+'/articles/'+postId] = null;
+    if (description) {
+      postElement.getElementsByClassName('descriptionButton')[0].onclick = () => {
+        showViewDialog(title, description);
+      };
+    }
+
+    postElement.getElementsByClassName('textButton')[0].onclick = () => {
+      showViewDialog(title, text);
+    };
+
+    firebase.database().ref('/sayilar/'+issueId+'/articles/'+postId).on('value', (data) => {
+      var publishCheck = document.getElementById('article-switch-'+postId);
+      if (data.val()) {
+        publishCheck.checked = true;
+      } else {
+        publishCheck.checked = false;
+      }
+    });
+
+    firebase.database().ref('/kullanicilar/'+uid+'/').once('value', (data) => {
+      var publishCheck = document.getElementById('article-switch-'+postId);
+      if (!data.val().isAdmin) {
+        publishCheck.disabled = true;
+      } else {
+        publishCheck.disabled = false;
+        publishCheck.addEventListener('click', () => {
+          var updates = {};
+          var pub = publishCheck.checked;
+          if (pub) {
+            updates['/sayilar/'+issueId+'/articles/'+postId] = true;
+          } else {
+            updates['/sayilar/'+issueId+'/articles/'+postId] = null;
+          }
+          //updates['/yazilar/'+postId+'/publish'] = publishCheck.checked;
+          firebase.database().ref().update(updates);
+        });
+        if (componentHandler) {
+          componentHandler.upgradeElements(postElement);
         }
-        //updates['/yazilar/'+postId+'/publish'] = publishCheck.checked;
-        firebase.database().ref().update(updates);
-      });
-      if (componentHandler) {
-        componentHandler.upgradeElements(postElement);
+
+        postElement.getElementsByClassName('delete')[0].innerHTML = '<button class="mdl-button mdl-js-button mdl-button--icon deleteButton"><i class="material-icons">delete</i></button>';
+        postElement.getElementsByClassName('deleteButton')[0].onclick = () => {
+          var ok = confirm(title + "'ı silmek istediğinizden emin misiniz?");
+          if (ok) {
+            firebase.database().ref('/yazilar/' + postId).remove().then((val) => {
+              console.log('Removed article ' + title);
+            });
+          }
+        };
       }
 
-      postElement.getElementsByClassName('delete')[0].innerHTML = '<button class="mdl-button mdl-js-button mdl-button--icon deleteButton"><i class="material-icons">delete</i></button>';
-      postElement.getElementsByClassName('deleteButton')[0].onclick = () => {
-        var ok = confirm(title + "'ı silmek istediğinizden emin misiniz?");
-        if (ok) {
-          firebase.database().ref('/yazilar/' + postId).remove().then((val) => {
-            console.log('Removed article ' + title);
-          });
-        }
-      };
-    }
+      if (data.val().isAdmin || (data.val().isEditor && uid == authorId && !isPublished)) {
+        postElement.getElementsByClassName('edit')[0].innerHTML = '<button class="mdl-button mdl-js-button mdl-button--icon editButton"><i class="material-icons">mode_edit</i></button>';
+        postElement.getElementsByClassName('editButton')[0].onclick = () => {
+          showSection(addArticle);
+          articleForm.reset();
+          articleImageContainer.style.display = 'none';
+          articleKeepImageContainer.style.display =  '';
+          articleKeepImageContainer.checked = false;
+          articleIdInput.value = postId;
+          articleAuthorIdInput.value = authorId;
+          articleoldIssueIdInput.value = issueId;
+          issueSelect.value = issueId;
+          articleTitleInput.value = title;
+          articleAuthorInput.value = author;
+          articleCategoryInput.value = category;
+          articleDescriptionInput.value = description;
+          articleTextInput.value = text;
+        };
+      }
+    });
 
-    if (data.val().isAdmin || (data.val().isEditor && uid == authorId && !isPublished)) {
-      postElement.getElementsByClassName('edit')[0].innerHTML = '<button class="mdl-button mdl-js-button mdl-button--icon editButton"><i class="material-icons">mode_edit</i></button>';
-      postElement.getElementsByClassName('editButton')[0].onclick = () => {
-        showSection(addArticle);
-        articleForm.reset();
-        articleImageContainer.style.display = 'none';
-        articleKeepImageContainer.style.display =  '';
-        articleKeepImageContainer.checked = false;
-        articleIdInput.value = postId;
-        articleAuthorIdInput.value = authorId;
-        articleoldIssueIdInput.value = issueId;
-        issueSelect.value = issueId;
-        articleTitleInput.value = title;
-        articleAuthorInput.value = author;
-        articleCategoryInput.value = category;
-        articleDescriptionInput.value = description;
-        articleTextInput.value = text;
-      };
+    if (componentHandler) {
+      componentHandler.upgradeElements(postElement);
     }
-  });
-
-  if (componentHandler) {
-    componentHandler.upgradeElements(postElement);
-  }
-  return postElement;
 }
 
 /**
  * Creates a issue element.
  */
 function createIssueElement(issueId, title, description, imageUrl, isPublished) {
+  // Create the DOM element from the HTML.
+  var postElement = document.getElementById('issues-table').getElementsByTagName('thead')[0].insertRow(-1);
+  postElement.classList.add('issue-'+issueId);
+
+  editIssueElement(postElement, issueId, title, description, imageUrl, isPublished);
+
+  return postElement;
+}
+
+function editIssueElement(postElement, issueId, title, description, imageUrl, isPublished) {
   var uid = firebase.auth().currentUser.uid;
 
   var html =  '<th class="mdl-data-table__cell--non-numeric title">'+ title +'</th>' +
@@ -243,9 +269,6 @@ function createIssueElement(issueId, title, description, imageUrl, isPublished) 
               '<th class="mdl-data-table__cell--non-numeric edit"></th>' +
               '<th class="mdl-data-table__cell--non-numeric delete"></th>';
 
-  // Create the DOM element from the HTML.
-  var postElement = document.getElementById('issues-table').getElementsByTagName('thead')[0].insertRow(-1);
-  postElement.classList.add('issue-'+issueId);
   postElement.innerHTML = html;
 
   if (imageUrl) {
@@ -312,13 +335,22 @@ function createIssueElement(issueId, title, description, imageUrl, isPublished) 
   if (componentHandler) {
     componentHandler.upgradeElements(postElement);
   }
-  return postElement;
 }
 
 /**
  * Creates a user element.
  */
 function createUserElement(userId, username, email, imageUrl, isAdmin, isEditor) {
+  // Create the DOM element from the HTML.
+  var postElement = document.getElementById('users-table').getElementsByTagName('thead')[0].insertRow(-1);
+  postElement.classList.add('user-'+userId);
+
+  editUserElement(postElement, userId, username, email, imageUrl, isAdmin, isEditor);
+
+  return postElement;
+}
+
+function editUserElement(postElement, userId, username, email, imageUrl, isAdmin, isEditor) {
   var uid = firebase.auth().currentUser.uid;
 
   var html =  '<th class="mdl-data-table__cell--non-numeric username"><div class="avatar"></div><div class="username">'+ username +'</div></th>' +
@@ -336,9 +368,6 @@ function createUserElement(userId, username, email, imageUrl, isAdmin, isEditor)
                 '</label>'
               '</th>';
 
-  // Create the DOM element from the HTML.
-  var postElement = document.getElementById('users-table').getElementsByTagName('thead')[0].insertRow(-1);
-  postElement.classList.add('user-'+userId);
   postElement.innerHTML = html;
 
   postElement.getElementsByClassName('avatar')[0].style.backgroundImage = 'url("' +
@@ -373,7 +402,6 @@ function createUserElement(userId, username, email, imageUrl, isAdmin, isEditor)
   if (componentHandler) {
     componentHandler.upgradeElements(postElement);
   }
-  return postElement;
 }
 
 /**
@@ -391,6 +419,8 @@ function startDatabaseQueries() {
     });
     postsRef.on('child_changed', function(data) {
       var postElement = articlesSection.getElementsByClassName('article-' + data.key)[0];
+      editArticleElement(postElement, data.key, data.val().authorId, data.val().issueId, data.val().title, data.val().author, data.val().category, data.val().description, data.val().imageUrl, data.val().body);
+      /*
       firebase.database().ref("/sayilar/"+data.val().issueId+"/title").once("value", (snapshot) => {
         postElement.getElementsByClassName('issue')[0].innerText = snapshot.val() || 'SAYI YOK';
       });
@@ -432,6 +462,7 @@ function startDatabaseQueries() {
           articleTextInput.value = data.val().body;
         };
       }
+      */
     });
     postsRef.on('child_removed', function(data) {
       var postElement = articlesSection.getElementsByClassName('article-' + data.key)[0];
@@ -453,6 +484,8 @@ function startDatabaseQueries() {
     });
     postsRef.on('child_changed', function(data) {
       var postElement = issuesSection.getElementsByClassName('issue-' + data.key)[0];
+      editIssueElement(postElement, data.key, data.val().title, data.val().description, data.val().imageUrl, data.val().publish);
+      /*
       postElement.getElementsByClassName('title')[0].innerText = data.val().title;
       postElement.getElementsByClassName('description')[0].innerHTML = data.val().description?'<button class="mdl-button mdl-js-button mdl-button--icon descriptionButton"><i class="material-icons">subject</i></button>':'';
       postElement.getElementsByClassName('imageUrl')[0].innerHTML = data.val().imageUrl?'<button class="mdl-button mdl-js-button mdl-button--icon imageButton"><i class="material-icons">image</i></button>':'';
@@ -480,6 +513,7 @@ function startDatabaseQueries() {
           issueDescriptionInput.value = data.val().description;
         };
       }
+      */
     });
     postsRef.on('child_removed', function(data) {
       var postElement = issuesSection.getElementsByClassName('issue-' + data.key)[0];
@@ -493,12 +527,15 @@ function startDatabaseQueries() {
     });
     postsRef.on('child_changed', function(data) {
       var postElement = usersSection.getElementsByClassName('user-' + data.key)[0];
+        editUserElement(postElement, data.key, data.val().username, data.val().email, data.val().profile_picture, data.val().isAdmin, data.val().isEditor);
+      /*
       postElement.getElementsByClassName('username')[0].innerHTML = '<div class="avatar"></div><div class="username">'+ data.val().username + '</div>';
       postElement.getElementsByClassName('email')[0].innerText = data.val().email;
       document.getElementById('user-admin-'+data.key).checked = data.val().isAdmin;
       document.getElementById('user-editor-'+data.key).checked = data.val().isEditor;
       postElement.getElementsByClassName('avatar')[0].style.backgroundImage = 'url("' +
           (data.val().profile_picture || './silhouette.jpg') + '")';
+      */
     });
     postsRef.on('child_removed', function(data) {
       var postElement = usersSection.getElementsByClassName('article-' + data.key)[0];
