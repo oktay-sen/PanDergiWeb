@@ -239,7 +239,7 @@ function editArticleElement(postElement, postId, authorId, issueId, title, autho
       if (componentHandler) {
         componentHandler.upgradeElements(postElement);
       }
-    }, 100);
+    }, 200);
 }
 
 /**
@@ -337,7 +337,7 @@ function editIssueElement(postElement, issueId, title, description, imageUrl, is
     if (componentHandler) {
       componentHandler.upgradeElements(postElement);
     }
-  }, 100);
+  }, 200);
 }
 
 /**
@@ -406,7 +406,7 @@ function editUserElement(postElement, userId, username, email, imageUrl, isAdmin
     if (componentHandler) {
       componentHandler.upgradeElements(postElement);
     }
-  }, 100);
+  }, 200);
 }
 
 /**
